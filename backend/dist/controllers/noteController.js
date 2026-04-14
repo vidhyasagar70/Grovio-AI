@@ -27,49 +27,49 @@ const updateSchema = zod_1.z
 });
 const noteService = new noteService_1.NoteService();
 class NoteController {
-    static list(req, res, next) {
+    static async list(req, res, next) {
         try {
             const userId = req.userId;
             if (!userId) {
                 throw new appError_1.AppError("User not authenticated", 401);
             }
             const query = listSchema.parse(req.query);
-            const notes = noteService.listNotes(userId, query);
+            const notes = await noteService.listNotes(userId, query);
             res.status(200).json((0, apiResponse_1.ok)(notes));
         }
         catch (error) {
             next(error);
         }
     }
-    static getOne(req, res, next) {
+    static async getOne(req, res, next) {
         try {
             const userId = req.userId;
             if (!userId) {
                 throw new appError_1.AppError("User not authenticated", 401);
             }
             const { id } = noteIdSchema.parse(req.params);
-            const note = noteService.getNoteById(userId, id);
+            const note = await noteService.getNoteById(userId, id);
             res.status(200).json((0, apiResponse_1.ok)(note));
         }
         catch (error) {
             next(error);
         }
     }
-    static create(req, res, next) {
+    static async create(req, res, next) {
         try {
             const userId = req.userId;
             if (!userId) {
                 throw new appError_1.AppError("User not authenticated", 401);
             }
             const payload = createSchema.parse(req.body);
-            const note = noteService.createNote(userId, payload);
+            const note = await noteService.createNote(userId, payload);
             res.status(201).json((0, apiResponse_1.ok)(note, "Note created successfully."));
         }
         catch (error) {
             next(error);
         }
     }
-    static update(req, res, next) {
+    static async update(req, res, next) {
         try {
             const userId = req.userId;
             if (!userId) {
@@ -77,21 +77,21 @@ class NoteController {
             }
             const { id } = noteIdSchema.parse(req.params);
             const payload = updateSchema.parse(req.body);
-            const note = noteService.updateNote(userId, id, payload);
+            const note = await noteService.updateNote(userId, id, payload);
             res.status(200).json((0, apiResponse_1.ok)(note, "Note updated successfully."));
         }
         catch (error) {
             next(error);
         }
     }
-    static delete(req, res, next) {
+    static async delete(req, res, next) {
         try {
             const userId = req.userId;
             if (!userId) {
                 throw new appError_1.AppError("User not authenticated", 401);
             }
             const { id } = noteIdSchema.parse(req.params);
-            noteService.deleteNote(userId, id);
+            await noteService.deleteNote(userId, id);
             res.status(200).json((0, apiResponse_1.ok)(null, "Note deleted successfully."));
         }
         catch (error) {

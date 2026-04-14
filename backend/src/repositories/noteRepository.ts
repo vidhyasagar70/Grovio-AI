@@ -1,4 +1,3 @@
-import db from "../db/sqlite";
 import type {
   CreateNoteInput,
   ListNotesParams,
@@ -6,93 +5,147 @@ import type {
   PaginationResult,
   UpdateNoteInput,
 } from "../types/note";
+import { pool } from "../db/postgres";
+
+type NoteRow = {
+  id: number;
+  user_id: number;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+};
 
 export class NoteRepository {
-  public list(userId: number, params: ListNotesParams): PaginationResult<Note> {
+  public async list(userId: number, params: ListNotesParams): Promise<PaginationResult<Note>> {
     const offset = (params.page - 1) * params.limit;
     const hasSearch = typeof params.search === "string" && params.search.trim().length > 0;
     const normalizedSearch = `%${params.search?.trim() ?? ""}%`;
 
     const whereClause = hasSearch
-      ? "WHERE user_id = ? AND (title LIKE ? OR content LIKE ?)"
-      : "WHERE user_id = ?";
+      ? "WHERE user_id = $1 AND (title ILIKE $2 OR content ILIKE $2)"
+      : "WHERE user_id = $1";
 
-    const totalStmt = db.prepare(`SELECT COUNT(*) as total FROM notes ${whereClause}`);
-
-    const listStmt = db.prepare(
-      `
-        SELECT id, user_id, title, content, created_at, updated_at
-        FROM notes
-        ${whereClause}
-        ORDER BY datetime(updated_at) DESC
-        LIMIT ? OFFSET ?
-      `,
+    const totalResult = await pool.query<{ total: number }>(
+      `SELECT COUNT(*)::int AS total FROM notes ${whereClause}`,
+      hasSearch ? [userId, normalizedSearch] : [userId],
     );
 
-    const totalRow = hasSearch
-      ? (totalStmt.get(userId, normalizedSearch, normalizedSearch) as { total: number })
-      : (totalStmt.get(userId) as { total: number });
+    const listQuery = hasSearch
+      ? `
+        SELECT
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+        FROM notes
+        ${whereClause}
+        ORDER BY updated_at DESC, id DESC
+        LIMIT $3 OFFSET $4
+      `
+      : `
+        SELECT
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+        FROM notes
+        ${whereClause}
+        ORDER BY updated_at DESC, id DESC
+        LIMIT $2 OFFSET $3
+      `;
 
-    const items = hasSearch
-      ? (listStmt.all(userId, normalizedSearch, normalizedSearch, params.limit, offset) as Note[])
-      : (listStmt.all(userId, params.limit, offset) as Note[]);
+    const listResult = await pool.query<NoteRow>(
+      listQuery,
+      hasSearch ? [userId, normalizedSearch, params.limit, offset] : [userId, params.limit, offset],
+    );
 
-    const totalPages = Math.max(1, Math.ceil(totalRow.total / params.limit));
+    const total = totalResult.rows[0]?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / params.limit));
 
     return {
-      items,
+      items: listResult.rows,
       pagination: {
         page: params.page,
         limit: params.limit,
-        total: totalRow.total,
+        total,
         totalPages,
       },
     };
   }
 
-  public getById(id: number, userId: number): Note | null {
-    const stmt = db.prepare(
-      "SELECT id, user_id, title, content, created_at, updated_at FROM notes WHERE id = ? AND user_id = ?",
+  public async getById(id: number, userId: number): Promise<Note | null> {
+    const result = await pool.query<NoteRow>(
+      `
+        SELECT
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+        FROM notes
+        WHERE id = $1 AND user_id = $2
+      `,
+      [id, userId],
     );
-    return (stmt.get(id, userId) as Note | undefined) ?? null;
+
+    return result.rows[0] ?? null;
   }
 
-  public create(userId: number, input: CreateNoteInput): Note {
-    const now = new Date().toISOString();
-    const insertStmt = db.prepare(
-      "INSERT INTO notes (user_id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+  public async create(userId: number, input: CreateNoteInput): Promise<Note> {
+    const result = await pool.query<NoteRow>(
+      `
+        INSERT INTO notes (user_id, title, content)
+        VALUES ($1, $2, $3)
+        RETURNING
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+      `,
+      [userId, input.title, input.content],
     );
-    const result = insertStmt.run(userId, input.title, input.content, now, now);
-    const created = this.getById(Number(result.lastInsertRowid), userId);
 
-    if (!created) {
-      throw new Error("Failed to fetch newly created note.");
-    }
-
-    return created;
+    return result.rows[0];
   }
 
-  public update(id: number, userId: number, input: UpdateNoteInput): Note | null {
-    const existing = this.getById(id, userId);
+  public async update(id: number, userId: number, input: UpdateNoteInput): Promise<Note | null> {
+    const existing = await this.getById(id, userId);
     if (!existing) {
       return null;
     }
 
     const updatedTitle = input.title ?? existing.title;
     const updatedContent = input.content ?? existing.content;
-    const now = new Date().toISOString();
 
-    const updateStmt = db.prepare(
-      "UPDATE notes SET title = ?, content = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+    const result = await pool.query<NoteRow>(
+      `
+        UPDATE notes
+        SET title = $1, content = $2, updated_at = NOW()
+        WHERE id = $3 AND user_id = $4
+        RETURNING
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+      `,
+      [updatedTitle, updatedContent, id, userId],
     );
-    updateStmt.run(updatedTitle, updatedContent, now, id, userId);
 
-    return this.getById(id, userId);
+    return result.rows[0] ?? null;
   }
 
-  public delete(id: number, userId: number): boolean {
-    const stmt = db.prepare("DELETE FROM notes WHERE id = ? AND user_id = ?");
-    const result = stmt.run(id, userId);
-    return result.changes > 0;
+  public async delete(id: number, userId: number): Promise<boolean> {
+    const result = await pool.query("DELETE FROM notes WHERE id = $1 AND user_id = $2", [id, userId]);
+    return (result.rowCount ?? 0) > 0;
   }
 }

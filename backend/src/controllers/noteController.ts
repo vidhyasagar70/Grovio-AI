@@ -32,7 +32,7 @@ const updateSchema = z
 const noteService = new NoteService();
 
 export class NoteController {
-  public static list(req: AuthRequest, res: Response, next: NextFunction): void {
+  public static async list(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId;
       if (!userId) {
@@ -40,14 +40,14 @@ export class NoteController {
       }
 
       const query = listSchema.parse(req.query);
-      const notes = noteService.listNotes(userId, query);
+      const notes = await noteService.listNotes(userId, query);
       res.status(200).json(ok(notes));
     } catch (error) {
       next(error);
     }
   }
 
-  public static getOne(req: AuthRequest, res: Response, next: NextFunction): void {
+  public static async getOne(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId;
       if (!userId) {
@@ -55,14 +55,14 @@ export class NoteController {
       }
 
       const { id } = noteIdSchema.parse(req.params);
-      const note = noteService.getNoteById(userId, id);
+      const note = await noteService.getNoteById(userId, id);
       res.status(200).json(ok(note));
     } catch (error) {
       next(error);
     }
   }
 
-  public static create(req: AuthRequest, res: Response, next: NextFunction): void {
+  public static async create(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId;
       if (!userId) {
@@ -70,14 +70,14 @@ export class NoteController {
       }
 
       const payload = createSchema.parse(req.body);
-      const note = noteService.createNote(userId, payload);
+      const note = await noteService.createNote(userId, payload);
       res.status(201).json(ok(note, "Note created successfully."));
     } catch (error) {
       next(error);
     }
   }
 
-  public static update(req: AuthRequest, res: Response, next: NextFunction): void {
+  public static async update(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId;
       if (!userId) {
@@ -86,14 +86,14 @@ export class NoteController {
 
       const { id } = noteIdSchema.parse(req.params);
       const payload = updateSchema.parse(req.body);
-      const note = noteService.updateNote(userId, id, payload);
+      const note = await noteService.updateNote(userId, id, payload);
       res.status(200).json(ok(note, "Note updated successfully."));
     } catch (error) {
       next(error);
     }
   }
 
-  public static delete(req: AuthRequest, res: Response, next: NextFunction): void {
+  public static async delete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId;
       if (!userId) {
@@ -101,7 +101,7 @@ export class NoteController {
       }
 
       const { id } = noteIdSchema.parse(req.params);
-      noteService.deleteNote(userId, id);
+      await noteService.deleteNote(userId, id);
       res.status(200).json(ok(null, "Note deleted successfully."));
     } catch (error) {
       next(error);

@@ -10,11 +10,18 @@ React + TypeScript + Tailwind CSS frontend for the full-stack Markdown Notes app
 
 ## API Integration
 
-The frontend calls `/api/*` and Vite proxies those requests to `http://localhost:4000` during development.
+The frontend uses a single API base URL for both notes and auth requests.
+
+- Local development: Vite proxies `/api/*` to `http://localhost:4000`.
+- Production on Vercel: set `VITE_API_BASE_URL` to your Render backend URL, or keep `/api` if you add a Vercel rewrite.
 
 Optional environment override:
 
 - `VITE_API_BASE_URL=/api`
+
+Example production value:
+
+- `VITE_API_BASE_URL=https://your-backend.onrender.com`
 
 ## Main UI Features
 

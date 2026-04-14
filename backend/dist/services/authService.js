@@ -14,7 +14,7 @@ exports.authService = {
     signup: async (input) => {
         const { email, password } = input;
         // Check if email already exists
-        const existingUser = authRepository_1.authRepository.getUserByEmail(email);
+        const existingUser = await authRepository_1.authRepository.getUserByEmail(email);
         if (existingUser) {
             throw new appError_1.AppError("Email already registered", 400);
         }
@@ -25,7 +25,7 @@ exports.authService = {
         // Hash password
         const passwordHash = await bcrypt_1.default.hash(password, SALT_ROUNDS);
         // Create user
-        const user = authRepository_1.authRepository.createUser(email, passwordHash);
+        const user = await authRepository_1.authRepository.createUser(email, passwordHash);
         // Generate token
         const token = exports.authService.generateToken(user);
         return { user, token };
@@ -33,12 +33,12 @@ exports.authService = {
     login: async (input) => {
         const { email, password } = input;
         // Check if user exists
-        const user = authRepository_1.authRepository.getUserByEmail(email);
+        const user = await authRepository_1.authRepository.getUserByEmail(email);
         if (!user) {
             throw new appError_1.AppError("Invalid email or password", 401);
         }
         // Get password hash
-        const passwordHash = authRepository_1.authRepository.getPasswordHash(email);
+        const passwordHash = await authRepository_1.authRepository.getPasswordHash(email);
         if (!passwordHash) {
             throw new appError_1.AppError("Invalid email or password", 401);
         }

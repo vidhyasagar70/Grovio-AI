@@ -1,7 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-require("./sqlite");
-// Schema creation runs when sqlite module is loaded.
-// This script gives an explicit migration command for CI/local setup.
-// eslint-disable-next-line no-console
-console.log("Database migration completed successfully.");
+const postgres_1 = require("./postgres");
+const run = async () => {
+    await (0, postgres_1.initializeDatabase)();
+    // eslint-disable-next-line no-console
+    console.log("Database migration completed successfully.");
+    await (0, postgres_1.closeDatabase)();
+};
+void run().catch((error) => {
+    // eslint-disable-next-line no-console
+    console.error("Database migration failed.", error);
+    process.exitCode = 1;
+});

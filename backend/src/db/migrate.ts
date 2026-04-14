@@ -1,6 +1,14 @@
-import "./sqlite";
+import { closeDatabase, initializeDatabase } from "./postgres";
 
-// Schema creation runs when sqlite module is loaded.
-// This script gives an explicit migration command for CI/local setup.
-// eslint-disable-next-line no-console
-console.log("Database migration completed successfully.");
+const run = async (): Promise<void> => {
+	await initializeDatabase();
+	// eslint-disable-next-line no-console
+	console.log("Database migration completed successfully.");
+	await closeDatabase();
+};
+
+void run().catch((error: unknown) => {
+	// eslint-disable-next-line no-console
+	console.error("Database migration failed.", error);
+	process.exitCode = 1;
+});

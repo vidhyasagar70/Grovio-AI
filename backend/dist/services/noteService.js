@@ -8,28 +8,28 @@ class NoteService {
     constructor(repository) {
         this.repository = repository ?? new noteRepository_1.NoteRepository();
     }
-    listNotes(userId, params) {
+    async listNotes(userId, params) {
         return this.repository.list(userId, params);
     }
-    getNoteById(userId, id) {
-        const note = this.repository.getById(id, userId);
+    async getNoteById(userId, id) {
+        const note = await this.repository.getById(id, userId);
         if (!note) {
             throw new appError_1.AppError("Note not found.", 404);
         }
         return note;
     }
-    createNote(userId, input) {
+    async createNote(userId, input) {
         return this.repository.create(userId, input);
     }
-    updateNote(userId, id, input) {
-        const updated = this.repository.update(id, userId, input);
+    async updateNote(userId, id, input) {
+        const updated = await this.repository.update(id, userId, input);
         if (!updated) {
             throw new appError_1.AppError("Note not found.", 404);
         }
         return updated;
     }
-    deleteNote(userId, id) {
-        const deleted = this.repository.delete(id, userId);
+    async deleteNote(userId, id) {
+        const deleted = await this.repository.delete(id, userId);
         if (!deleted) {
             throw new appError_1.AppError("Note not found.", 404);
         }

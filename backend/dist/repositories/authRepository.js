@@ -1,38 +1,46 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authRepository = void 0;
-const sqlite_1 = __importDefault(require("../db/sqlite"));
+const postgres_1 = require("../db/postgres");
 exports.authRepository = {
-    getUserByEmail: (email) => {
-        const row = sqlite_1.default
-            .prepare("SELECT id, email, created_at, updated_at FROM users WHERE email = ?")
-            .get(email);
-        return row || null;
+    getUserByEmail: async (email) => {
+        const result = await postgres_1.pool.query(`
+        SELECT
+          id,
+          email,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+        FROM users
+        WHERE email = $1
+      `, [email]);
+        return result.rows[0] ?? null;
     },
-    getUserById: (id) => {
-        const row = sqlite_1.default
-            .prepare("SELECT id, email, created_at, updated_at FROM users WHERE id = ?")
-            .get(id);
-        return row || null;
+    getUserById: async (id) => {
+        const result = await postgres_1.pool.query(`
+        SELECT
+          id,
+          email,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+        FROM users
+        WHERE id = $1
+      `, [id]);
+        return result.rows[0] ?? null;
     },
-    createUser: (email, passwordHash) => {
-        const now = new Date().toISOString();
-        const stmt = sqlite_1.default.prepare("INSERT INTO users (email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?)");
-        const result = stmt.run(email, passwordHash, now, now);
-        return {
-            id: result.lastInsertRowid,
-            email,
-            created_at: now,
-            updated_at: now,
-        };
+    createUser: async (email, passwordHash) => {
+        const result = await postgres_1.pool.query(`
+        INSERT INTO users (email, password_hash)
+        VALUES ($1, $2)
+        RETURNING
+          id,
+          email,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+      `, [email, passwordHash]);
+        return result.rows[0];
     },
-    getPasswordHash: (email) => {
-        const row = sqlite_1.default
-            .prepare("SELECT password_hash FROM users WHERE email = ?")
-            .get(email);
-        return row?.password_hash || null;
+    getPasswordHash: async (email) => {
+        const result = await postgres_1.pool.query("SELECT password_hash FROM users WHERE email = $1", [email]);
+        return result.rows[0]?.password_hash ?? null;
     },
 };

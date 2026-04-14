@@ -1,73 +1,108 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NoteRepository = void 0;
-const sqlite_1 = __importDefault(require("../db/sqlite"));
+const postgres_1 = require("../db/postgres");
 class NoteRepository {
-    list(userId, params) {
+    async list(userId, params) {
         const offset = (params.page - 1) * params.limit;
         const hasSearch = typeof params.search === "string" && params.search.trim().length > 0;
         const normalizedSearch = `%${params.search?.trim() ?? ""}%`;
         const whereClause = hasSearch
-            ? "WHERE user_id = ? AND (title LIKE ? OR content LIKE ?)"
-            : "WHERE user_id = ?";
-        const totalStmt = sqlite_1.default.prepare(`SELECT COUNT(*) as total FROM notes ${whereClause}`);
-        const listStmt = sqlite_1.default.prepare(`
-        SELECT id, user_id, title, content, created_at, updated_at
+            ? "WHERE user_id = $1 AND (title ILIKE $2 OR content ILIKE $2)"
+            : "WHERE user_id = $1";
+        const totalResult = await postgres_1.pool.query(`SELECT COUNT(*)::int AS total FROM notes ${whereClause}`, hasSearch ? [userId, normalizedSearch] : [userId]);
+        const listQuery = hasSearch
+            ? `
+        SELECT
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
         FROM notes
         ${whereClause}
-        ORDER BY datetime(updated_at) DESC
-        LIMIT ? OFFSET ?
-      `);
-        const totalRow = hasSearch
-            ? totalStmt.get(userId, normalizedSearch, normalizedSearch)
-            : totalStmt.get(userId);
-        const items = hasSearch
-            ? listStmt.all(userId, normalizedSearch, normalizedSearch, params.limit, offset)
-            : listStmt.all(userId, params.limit, offset);
-        const totalPages = Math.max(1, Math.ceil(totalRow.total / params.limit));
+        ORDER BY updated_at DESC, id DESC
+        LIMIT $3 OFFSET $4
+      `
+            : `
+        SELECT
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+        FROM notes
+        ${whereClause}
+        ORDER BY updated_at DESC, id DESC
+        LIMIT $2 OFFSET $3
+      `;
+        const listResult = await postgres_1.pool.query(listQuery, hasSearch ? [userId, normalizedSearch, params.limit, offset] : [userId, params.limit, offset]);
+        const total = totalResult.rows[0]?.total ?? 0;
+        const totalPages = Math.max(1, Math.ceil(total / params.limit));
         return {
-            items,
+            items: listResult.rows,
             pagination: {
                 page: params.page,
                 limit: params.limit,
-                total: totalRow.total,
+                total,
                 totalPages,
             },
         };
     }
-    getById(id, userId) {
-        const stmt = sqlite_1.default.prepare("SELECT id, user_id, title, content, created_at, updated_at FROM notes WHERE id = ? AND user_id = ?");
-        return stmt.get(id, userId) ?? null;
+    async getById(id, userId) {
+        const result = await postgres_1.pool.query(`
+        SELECT
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+        FROM notes
+        WHERE id = $1 AND user_id = $2
+      `, [id, userId]);
+        return result.rows[0] ?? null;
     }
-    create(userId, input) {
-        const now = new Date().toISOString();
-        const insertStmt = sqlite_1.default.prepare("INSERT INTO notes (user_id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
-        const result = insertStmt.run(userId, input.title, input.content, now, now);
-        const created = this.getById(Number(result.lastInsertRowid), userId);
-        if (!created) {
-            throw new Error("Failed to fetch newly created note.");
-        }
-        return created;
+    async create(userId, input) {
+        const result = await postgres_1.pool.query(`
+        INSERT INTO notes (user_id, title, content)
+        VALUES ($1, $2, $3)
+        RETURNING
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+      `, [userId, input.title, input.content]);
+        return result.rows[0];
     }
-    update(id, userId, input) {
-        const existing = this.getById(id, userId);
+    async update(id, userId, input) {
+        const existing = await this.getById(id, userId);
         if (!existing) {
             return null;
         }
         const updatedTitle = input.title ?? existing.title;
         const updatedContent = input.content ?? existing.content;
-        const now = new Date().toISOString();
-        const updateStmt = sqlite_1.default.prepare("UPDATE notes SET title = ?, content = ?, updated_at = ? WHERE id = ? AND user_id = ?");
-        updateStmt.run(updatedTitle, updatedContent, now, id, userId);
-        return this.getById(id, userId);
+        const result = await postgres_1.pool.query(`
+        UPDATE notes
+        SET title = $1, content = $2, updated_at = NOW()
+        WHERE id = $3 AND user_id = $4
+        RETURNING
+          id,
+          user_id,
+          title,
+          content,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+      `, [updatedTitle, updatedContent, id, userId]);
+        return result.rows[0] ?? null;
     }
-    delete(id, userId) {
-        const stmt = sqlite_1.default.prepare("DELETE FROM notes WHERE id = ? AND user_id = ?");
-        const result = stmt.run(id, userId);
-        return result.changes > 0;
+    async delete(id, userId) {
+        const result = await postgres_1.pool.query("DELETE FROM notes WHERE id = $1 AND user_id = $2", [id, userId]);
+        return (result.rowCount ?? 0) > 0;
     }
 }
 exports.NoteRepository = NoteRepository;

@@ -12,7 +12,7 @@ export const authService = {
     const { email, password } = input;
 
     // Check if email already exists
-    const existingUser = authRepository.getUserByEmail(email);
+    const existingUser = await authRepository.getUserByEmail(email);
     if (existingUser) {
       throw new AppError("Email already registered", 400);
     }
@@ -26,7 +26,7 @@ export const authService = {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     // Create user
-    const user = authRepository.createUser(email, passwordHash);
+    const user = await authRepository.createUser(email, passwordHash);
 
     // Generate token
     const token = authService.generateToken(user);
@@ -38,13 +38,13 @@ export const authService = {
     const { email, password } = input;
 
     // Check if user exists
-    const user = authRepository.getUserByEmail(email);
+    const user = await authRepository.getUserByEmail(email);
     if (!user) {
       throw new AppError("Invalid email or password", 401);
     }
 
     // Get password hash
-    const passwordHash = authRepository.getPasswordHash(email);
+    const passwordHash = await authRepository.getPasswordHash(email);
     if (!passwordHash) {
       throw new AppError("Invalid email or password", 401);
     }

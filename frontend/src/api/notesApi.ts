@@ -1,7 +1,6 @@
 import type { ApiResponse } from "../types/api";
 import type { Note, PaginatedNotes } from "../types/note";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
+import { API_BASE_URL } from "./apiBaseUrl";
 
 const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem("authToken");

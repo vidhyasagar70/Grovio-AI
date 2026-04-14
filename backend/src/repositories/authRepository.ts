@@ -1,40 +1,75 @@
-import db from "../db/sqlite";
 import type { User } from "../types/auth";
+import { pool } from "../db/postgres";
+
+type UserRow = {
+  id: number;
+  email: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type PasswordRow = {
+  password_hash: string;
+};
 
 export const authRepository = {
-  getUserByEmail: (email: string): User | null => {
-    const row = db
-      .prepare("SELECT id, email, created_at, updated_at FROM users WHERE email = ?")
-      .get(email) as any;
-    return row || null;
-  },
-
-  getUserById: (id: number): User | null => {
-    const row = db
-      .prepare("SELECT id, email, created_at, updated_at FROM users WHERE id = ?")
-      .get(id) as any;
-    return row || null;
-  },
-
-  createUser: (email: string, passwordHash: string): User => {
-    const now = new Date().toISOString();
-    const stmt = db.prepare(
-      "INSERT INTO users (email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?)"
+  getUserByEmail: async (email: string): Promise<User | null> => {
+    const result = await pool.query<UserRow>(
+      `
+        SELECT
+          id,
+          email,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+        FROM users
+        WHERE email = $1
+      `,
+      [email],
     );
-    const result = stmt.run(email, passwordHash, now, now);
 
-    return {
-      id: result.lastInsertRowid as number,
-      email,
-      created_at: now,
-      updated_at: now,
-    };
+    return result.rows[0] ?? null;
   },
 
-  getPasswordHash: (email: string): string | null => {
-    const row = db
-      .prepare("SELECT password_hash FROM users WHERE email = ?")
-      .get(email) as any;
-    return row?.password_hash || null;
+  getUserById: async (id: number): Promise<User | null> => {
+    const result = await pool.query<UserRow>(
+      `
+        SELECT
+          id,
+          email,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+        FROM users
+        WHERE id = $1
+      `,
+      [id],
+    );
+
+    return result.rows[0] ?? null;
+  },
+
+  createUser: async (email: string, passwordHash: string): Promise<User> => {
+    const result = await pool.query<UserRow>(
+      `
+        INSERT INTO users (email, password_hash)
+        VALUES ($1, $2)
+        RETURNING
+          id,
+          email,
+          created_at::text AS created_at,
+          updated_at::text AS updated_at
+      `,
+      [email, passwordHash],
+    );
+
+    return result.rows[0];
+  },
+
+  getPasswordHash: async (email: string): Promise<string | null> => {
+    const result = await pool.query<PasswordRow>(
+      "SELECT password_hash FROM users WHERE email = $1",
+      [email],
+    );
+
+    return result.rows[0]?.password_hash ?? null;
   },
 };
