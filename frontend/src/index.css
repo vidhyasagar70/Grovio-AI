@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --app-bg: #f4f6fb;
+  --app-bg-accent: rgba(15, 23, 42, 0.04);
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #eef2f7;
+  --border: #d8dee8;
+  --text: #0f172a;
+  --muted: #64748b;
+  --muted-2: #94a3b8;
+  --accent: #0f172a;
+  --accent-text: #ffffff;
+  --accent-soft: #e2e8f0;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="dark"] {
+  --app-bg: #060816;
+  --app-bg-accent: rgba(56, 189, 248, 0.08);
+  --surface: #0f172a;
+  --surface-2: #111827;
+  --surface-3: #1e293b;
+  --border: #253246;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --muted-2: #64748b;
+  --accent: #e5e7eb;
+  --accent-text: #0f172a;
+  --accent-soft: #1e293b;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+html {
+  background: var(--app-bg);
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background:
+    radial-gradient(circle at top left, var(--app-bg-accent), transparent 36%),
+    var(--app-bg);
+  color: var(--text);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+* {
+  box-sizing: border-box;
+}

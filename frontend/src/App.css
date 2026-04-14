@@ -1,0 +1,83 @@
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.markdown-content h1 {
+  font-size: 1.5rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.25rem;
+}
+
+.markdown-content h3 {
+  font-size: 1.1rem;
+}
+
+.markdown-content p,
+.markdown-content ul,
+.markdown-content ol,
+.markdown-content pre,
+.markdown-content blockquote {
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.25rem;
+}
+
+.markdown-content ul {
+  list-style: disc;
+}
+
+.markdown-content ol {
+  list-style: decimal;
+}
+
+.markdown-content code {
+  background-color: color-mix(in srgb, var(--surface-3) 78%, transparent);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem;
+  font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content pre {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background-color: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.markdown-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.markdown-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+[data-theme="dark"] .markdown-content a {
+  color: #7dd3fc;
+}
+
+.markdown-content {
+  color: var(--text);
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid var(--border);
+  padding-left: 0.9rem;
+  color: var(--muted);
+}
