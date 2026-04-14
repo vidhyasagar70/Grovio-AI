@@ -2,6 +2,11 @@
 
 React + TypeScript + Tailwind CSS frontend for the full-stack Markdown Notes application.
 
+## Live URL
+
+- Frontend: https://grovio-ai-pied.vercel.app/
+- Backend API: https://grovio-ai.onrender.com/
+
 ## Scripts
 
 - `npm run dev` - start Vite dev server
@@ -21,7 +26,7 @@ Optional environment override:
 
 Example production value:
 
-- `VITE_API_BASE_URL=https://your-backend.onrender.com`
+- `VITE_API_BASE_URL=https://grovio-ai.onrender.com`
 
 ## Main UI Features
 

@@ -2,6 +2,11 @@
 
 Production-ready Markdown Notes app with clean architecture and scalable foundations.
 
+## Live Deployment
+
+- Frontend (Vercel): https://grovio-ai-pied.vercel.app/
+- Backend (Render): https://grovio-ai.onrender.com/
+
 ## Tech Stack
 
 - Frontend: React + TypeScript + Tailwind CSS (Vite)
@@ -129,6 +134,14 @@ Frontend default URL: `http://localhost:5173`
 
 Note: Vite dev server proxies `/api/*` to backend `http://localhost:4000`.
 
+## Production Configuration
+
+For deployed frontend-backend communication, set:
+
+- `VITE_API_BASE_URL=https://grovio-ai.onrender.com`
+
+This ensures frontend API calls resolve to the Render backend in production.
+
 ## Environment Variables
 
 Backend `.env` values:
@@ -180,3 +193,39 @@ The recommended production setup is:
 - PostgreSQL from Render, Neon, Supabase, or another managed provider.
 
 If the frontend is deployed separately, set `VITE_API_BASE_URL` to the backend URL or add a Vercel rewrite so `/api` forwards to the Render service.
+
+## API Endpoints (Production)
+
+Base URL: `https://grovio-ai.onrender.com`
+
+- `GET /health`
+- `POST /auth/signup`
+- `POST /auth/login`
+- `GET /notes` (requires Bearer token)
+- `GET /notes/:id` (requires Bearer token)
+- `POST /notes` (requires Bearer token)
+- `PUT /notes/:id` (requires Bearer token)
+- `DELETE /notes/:id` (requires Bearer token)
+
+## Postman Collection (Submission Format)
+
+Submission-ready Postman collection is included at:
+
+- `postman/Grovio-AI.postman_collection.json`
+
+Import steps:
+
+1. Open Postman.
+2. Click **Import**.
+3. Select `postman/Grovio-AI.postman_collection.json`.
+4. Confirm collection variables:
+  - `baseUrl=https://grovio-ai.onrender.com`
+  - `password=Passw0rd!` (or your preferred test password)
+5. Run requests in this order for a full flow:
+  - `Auth / Signup` (optional, auto-generates email)
+  - `Auth / Login` (stores `token`)
+  - `Notes / Create Note` (stores `noteId`)
+  - `Notes / List Notes`
+  - `Notes / Get Note By Id`
+  - `Notes / Update Note`
+  - `Notes / Delete Note`
