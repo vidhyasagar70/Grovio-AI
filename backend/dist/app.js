@@ -12,7 +12,24 @@ const errorHandler_1 = require("./middleware/errorHandler");
 const notFound_1 = require("./middleware/notFound");
 const authMiddleware_1 = require("./middleware/authMiddleware");
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)({ origin: env_1.env.corsOrigin }));
+const normalizeOrigin = (origin) => origin.endsWith("/") ? origin.slice(0, -1) : origin;
+const allowedOrigins = env_1.env.corsOrigin
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0)
+    .map(normalizeOrigin);
+app.use((0, cors_1.default)({
+    origin: (requestOrigin, callback) => {
+        // Allow non-browser/server-to-server requests with no Origin header.
+        if (!requestOrigin) {
+            callback(null, true);
+            return;
+        }
+        const normalizedRequestOrigin = normalizeOrigin(requestOrigin);
+        const isAllowed = allowedOrigins.includes(normalizedRequestOrigin);
+        callback(null, isAllowed);
+    },
+}));
 app.use(express_1.default.json({ limit: "1mb" }));
 app.get("/health", (_req, res) => {
     res.status(200).json({
